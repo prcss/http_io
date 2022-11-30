@@ -1302,11 +1302,14 @@ impl HttpHeaders {
     }
 
     pub fn get(&self, key: &str) -> Option<&str> {
-        self.headers.get(key).map(convert::AsRef::as_ref)
+        let key = key.to_ascii_lowercase();
+        self.headers.get(&key).map(convert::AsRef::as_ref)
     }
 
     pub fn insert<K: Into<String>, V: Into<String>>(&mut self, key: K, value: V) {
-        self.headers.insert(key.into(), value.into());
+        let mut key = key.into();
+        key.make_ascii_lowercase();
+        self.headers.insert(key, value.into());
     }
 
     fn deserialize<R: io::Read>(s: &mut CrLfStream<R>) -> Result<Self> {
@@ -1336,7 +1339,8 @@ impl HttpHeaders {
 impl From<Vec<HttpHeader>> for HttpHeaders {
     fn from(mut headers: Vec<HttpHeader>) -> Self {
         let mut map = BTreeMap::new();
-        for h in headers.drain(..) {
+        for mut h in headers.drain(..) {
+            h.key.make_ascii_lowercase();
             map.insert(h.key, h.value);
         }
         HttpHeaders { headers: map }
